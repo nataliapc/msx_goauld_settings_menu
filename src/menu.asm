@@ -22,79 +22,80 @@ org #7d40
 bucle:
 	; Print var1
 	ld hl,#1402
-	ld a,(var1)
+	ld a,(var1_mapper)
 	call print_on_off
 
 	; Print var2
 	ld hl,#1403
-	ld a,(var2)
+	ld a,(var2_megram)
 	call print_on_off
 
 	; Print var3
 	ld hl,#1404
-	ld a,(var3)
+	ld a,(var3_scanln)
 	call print_on_off
 
 	; Print var4
 	ld hl,#1405
 	call set_cursor
-	ld a,(var4)
+	ld a,(var4_mapslt)
 	add a,#30
 	call print_char
 
 	; Wait for a key
+wait_for_a_key:
 	call CHSNS
-	jr z, bucle
+	jr z, wait_for_a_key
 	call read_char
 	or a
-	jr z, bucle
+	jr z, wait_for_a_key
 
 	; Key '1' pressed
-	cp a,#31
+	sub #31
 	jr nz,tecla2
 
-	ld a,(var1)
+	ld a,(var1_mapper)
 	xor 1
-	ld (var1),a
+	ld (var1_mapper),a
 	jr bucle
 
 tecla2:
 	; Key '2' pressed
-	cp a,#32
+	dec a
 	jr nz,tecla3
 
-	ld a,(var2)
+	ld a,(var2_megram)
 	xor 1
-	ld (var2),a
+	ld (var2_megram),a
 	jr bucle
 
 tecla3:
 	; Key '3' pressed
-	cp a,#33
+	dec a
 	jr nz,tecla4
 
-	ld a,(var3)
+	ld a,(var3_scanln)
 	xor 1
-	ld (var3),a
+	ld (var3_scanln),a
 	jr bucle_largo
 
 tecla4:
 	; Key '4' pressed
-	cp a,#34
+	dec a
 	jr nz,tecla5
 
-	ld a,(var4)
+	ld a,(var4_mapslt)
 	inc a
 	cp a,4
 	jr nz,no4
 	xor a
 no4:
-	ld (var4),a
+	ld (var4_mapslt),a
 	jr bucle_largo
 
 tecla5:
 	; Key '5' pressed
-	cp a,#35
+	dec a
 	jr nz,tecla6
 	call get_config
 	out (#41),a
@@ -102,7 +103,7 @@ tecla5:
 
 tecla6:
 	; Key '6' pressed
-	cp a,#36
+	dec a
 	jr nz,bucle_largo
 	call get_config
 	or #80
@@ -113,19 +114,19 @@ bucle_largo:
 	jp bucle
 
 get_config:
-	ld a,(var1)
+	ld a,(var1_mapper)
 	ld b,a
-	ld a,(var2)
+	ld a,(var2_megram)
 	sla a
 	or b
 	ld b,a
-	ld a,(var3)
+	ld a,(var3_scanln)
 	sla a
 	sla a
 	sla a
 	or b
 	ld b,a
-	ld a,(var4)
+	ld a,(var4_mapslt)
 	sla a
 	sla a
 	sla a
@@ -169,10 +170,10 @@ var_init_start:
 var_init_end:
 
 var_ram equ #8000
-var1 equ var_ram+0
-var2 equ var_ram+1
-var3 equ var_ram+2
-var4 equ var_ram+3
+var1_mapper equ var_ram+0
+var2_megram equ var_ram+1
+var3_scanln equ var_ram+2
+var4_mapslt equ var_ram+3
 
 ; ############## Constants
 
