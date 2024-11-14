@@ -60,6 +60,7 @@ test: $(ROMBIN)
 menuscr:
 	@echo "$(COL_BLUE)###### Editing menu screen $(COL_RESET)"
 	openmsx -machine msx2plus -script emulation/boot.tcl -diska assets/menu_screen
+#	openmsx -machine turbor -script emulation/boot.tcl -diska assets/menu_screen
 
 cleanrom:
 	@rm -rf $(ROMBIN)
