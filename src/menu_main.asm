@@ -426,7 +426,7 @@ struct_SaveReset:
 struct_MapperSlot:
 	.db 54, 5
 	.dw slotStr
-	.dw struct_MegaRamSlot, struct_MegaRamSlot, struct_EnableMapper
+	.dw struct_SaveReset, struct_MegaRamSlot, struct_EnableMapper
 	.dw #0800 + 4*10 + 6
 	.db 2
 	.dw selected_mapperSlot
@@ -434,7 +434,7 @@ struct_MapperSlot:
 struct_MegaRamSlot:
 	.db 54, 7
 	.dw slotStr
-	.dw struct_MapperSlot, struct_MapperSlot, struct_EnableMegaRam
+	.dw struct_MapperSlot, struct_Slot1GhostSCC, struct_EnableMegaRam
 	.dw #0800 + 6*10 + 6
 	.db 2
 	.dw selected_megaRamSlot
