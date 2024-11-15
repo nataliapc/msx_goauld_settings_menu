@@ -17,7 +17,7 @@ debug set_watchpoint write_io 0x18
 after time 14 wait_until_boot
 
 # Starting the emulation at Full Speed
-#set throttle off										
+#set throttle off
 set speed 9999
 # After 18 OpenMSX clocks (?), the normal speed of the computer is set back to normal
 #after time 18 "set speed 100"

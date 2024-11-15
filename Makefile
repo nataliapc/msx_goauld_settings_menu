@@ -1,4 +1,4 @@
-.PHONY: all menu orig
+.PHONY: all menu orig clean cleanrom
 
 COL_RED = \e[1;31m
 COL_YELLOW = \e[1;33m
@@ -10,10 +10,13 @@ COL_RESET = \e[0m
 
 
 DIRSRC = ./src
+BINDIR = ./bin
 DIROUT = ./out
 ASSETS = ./assets
 
-BINZX7 = zx7mini
+BINZX7 = $(BINDIR)/zx7mini
+BINZX0 = $(BINDIR)/zx0 -f
+BINPLETTER = $(BINDIR)/pletter
 
 MENUBIN = $(DIROUT)/menu.z80
 MENUMAIN = $(DIROUT)/menu_main.z80
@@ -38,14 +41,22 @@ $(MENUMAIN): $(DIRSRC)/menu_main.asm
 	@rm -rf $(DIROUT)/menu_main.zx7
 	@cp $(DIRSRC)/menu_main.asm $(DIROUT)/
 	asmsx -z -r $(DIROUT)/ $(DIROUT)/menu_main.asm
+	@rm -rf $(DIROUT)/~tmppre.* $(DIROUT)/*.zx0  $(DIROUT)/*.zx7
+	
+	@echo "$(COL_WHITE)###### Compressing with ZX7$(COL_RESET)"
 	@$(BINZX7) $(DIROUT)/menu_main.z80 $(DIROUT)/menu_main.zx7
-	@rm $(DIROUT)/~tmppre.*
+	
+	@echo "$(COL_WHITE)###### Compressing with ZX0$(COL_RESET)"
+	@$(BINZX0) $(DIROUT)/menu_main.z80 $(DIROUT)/menu_main.zx0
+	
+	@echo "$(COL_WHITE)###### Compressing with PLETTER$(COL_RESET)"
+	@$(BINPLETTER) $(DIROUT)/menu_main.z80 $(DIROUT)/menu_main.pletter
 
 $(MENUBIN): $(MENUMAIN) $(DIRSRC)/menu.asm
 	@echo "$(COL_WHITE)###### Compiling menu.asm$(COL_RESET)"
 	@cp $(DIRSRC)/menu.asm $(DIROUT)/
 	asmsx -z -r $(DIROUT)/ $(DIROUT)/menu.asm
-	@rm $(DIROUT)/~tmppre.*
+	@rm -rf $(DIROUT)/~tmppre.*
 
 $(ROMBIN): $(MENUBIN)
 	@echo "$(COL_WHITE)###### Creating ROM$(COL_RESET)"
@@ -59,8 +70,11 @@ test: $(ROMBIN)
 
 menuscr:
 	@echo "$(COL_BLUE)###### Editing menu screen $(COL_RESET)"
-	openmsx -machine msx2plus -script emulation/boot.tcl -diska assets/menu_screen
 #	openmsx -machine turbor -script emulation/boot.tcl -diska assets/menu_screen
+	openmsx -machine msx2plus -script emulation/boot.tcl -diska assets/menu_screen
 
 cleanrom:
 	@rm -rf $(ROMBIN)
+
+clean: cleanrom
+	@rm -rf $(DIROUT)/*

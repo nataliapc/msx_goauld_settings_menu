@@ -6,19 +6,21 @@
 	cp   a, #67
 	ret  nz
 
-	ld      hl, compressed_code
-	ld      de, menu_main
-	push    de
+	ld   hl, compressed_code
+	ld   de, menu_main
+	push de
 
 decompressor:
-	.include "../src/dzx7mini.asm"
+;	.include "../src/dzx7mini.asm"
+	.include "../src/dzx0_standard.asm"
 
 
 ; -----------------------------------------------------------------------------
 ; Compressed main menu code:
 ; -----------------------------------------------------------------------------
 compressed_code:
-	.incbin "menu_main.zx7"
+;	.incbin "menu_main.zx7"
+	.incbin "menu_main.zx0"
 
 menu_main equ #8000
 
