@@ -240,7 +240,7 @@ selected_megaRamSlot:
 
 selected_saveReset:
 	pop  hl							; Remove ret to bucle
-	call selected_saveExit
+	call selected_saveExitFromReset
 	di
 	ld   a, #48						; Set I/O device to Goauld (#48)
 	out  (#40),a
@@ -251,6 +251,7 @@ selected_saveReset:
 
 selected_saveExit:
 	pop  hl							; Remove ret to bucle
+selected_saveExitFromReset:
 	call config_var2byte
 	di
 	ld  a, #48						; Set I/O device to Goauld (#48)
