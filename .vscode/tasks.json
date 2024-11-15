@@ -6,7 +6,7 @@
 			"type": "shell",
 			"dependsOn": [
 			],
-			"command": "java -jar ./bin/mdl.jar src/menu_main.asm -dialect asmsx -po -do -popotential -+bin -warn-unofficial -warn-ambiguous",
+			"command": "java -jar ./bin/mdl.jar src/menu_main.asm -dialect asmsx-zilog -po -do -popotential -+bin -warn-unofficial -warn-ambiguous",
 			"group": {
 				"kind": "build",
 				"isDefault": true

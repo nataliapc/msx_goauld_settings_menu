@@ -201,22 +201,30 @@ selected_scanlines:
 	ret
 
 selected_mapperSlot:
-	ld a,(var_megslt)
-	ld b, a
-	ld a,(var_mapslt)
+	xor a							; If disabled not modify
+	ld  hl, var_mapper
+	cp  (hl)
+	ret z
+	ld  a,(var_megslt)				; Increase slot is not used by MegaRam
+	ld  b, a
+	ld  a,(var_mapslt)
 .mp_nomeg:
 	inc a
-	cp b
-	jr z,.mp_nomeg
-	cp 4
-	jr nz,.mp_no4
+	cp  b
+	jr  z,.mp_nomeg
+	cp  4
+	jr  nz,.mp_no4
 	xor a
 .mp_no4:
-	ld (var_mapslt),a
+	ld  (var_mapslt),a
 	ret
 
 selected_megaRamSlot:
-	ld  a,(var_mapslt)
+	xor a							; If disabled not modify
+	ld  hl, var_megram
+	cp  (hl)
+	ret z
+	ld  a,(var_mapslt)				; Increase slot is not used by Mapper
 	ld  b, a
 	ld  a,(var_megslt)
 .mr_nomap:
