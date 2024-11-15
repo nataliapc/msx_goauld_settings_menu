@@ -14,6 +14,7 @@ BINDIR = ./bin
 DIROUT = ./out
 ASSETS = ./assets
 
+BINASM = $(BINDIR)/asmsx -z -r
 BINZX7 = $(BINDIR)/zx7mini
 BINZX0 = $(BINDIR)/zx0 -f
 BINPLETTER = $(BINDIR)/pletter
@@ -30,7 +31,7 @@ rom: cleanrom $(ROMBIN)
 orig: $(DIRSRC)/menu_orig.asm
 	@echo "$(COL_WHITE)###### Compiling $@$(COL_RESET)"
 	@cp $^ $(DIROUT)/
-	asmsx -z -r $(DIROUT)/ $(DIROUT)/menu_orig.asm
+	$(BINASM) $(DIROUT)/ $(DIROUT)/menu_orig.asm
 	@rm $(DIROUT)/~tmppre.*
 	@echo "###### Creating ROM"
 	@cp $(ROMEMPTY) $(ROMBIN)
@@ -40,7 +41,7 @@ $(MENUMAIN): $(DIRSRC)/menu_main.asm
 	@echo "$(COL_WHITE)###### Compiling menu_main.asm$(COL_RESET)"
 	@rm -rf $(DIROUT)/menu_main.zx7
 	@cp $(DIRSRC)/menu_main.asm $(DIROUT)/
-	asmsx -z -r $(DIROUT)/ $(DIROUT)/menu_main.asm
+	$(BINASM) $(DIROUT)/ $(DIROUT)/menu_main.asm
 	@rm -rf $(DIROUT)/~tmppre.* $(DIROUT)/*.zx0  $(DIROUT)/*.zx7
 	
 	@echo "$(COL_WHITE)###### Compressing with ZX7$(COL_RESET)"
@@ -55,7 +56,7 @@ $(MENUMAIN): $(DIRSRC)/menu_main.asm
 $(MENUBIN): $(MENUMAIN) $(DIRSRC)/menu.asm
 	@echo "$(COL_WHITE)###### Compiling menu.asm$(COL_RESET)"
 	@cp $(DIRSRC)/menu.asm $(DIROUT)/
-	asmsx -z -r $(DIROUT)/ $(DIROUT)/menu.asm
+	$(BINASM) $(DIROUT)/ $(DIROUT)/menu.asm
 	@rm -rf $(DIROUT)/~tmppre.*
 
 $(ROMBIN): $(MENUBIN)
