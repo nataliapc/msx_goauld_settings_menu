@@ -42,45 +42,45 @@
 
 	; Read Goauld settings
 	di
-	ld  a, #48						; Set I/O device to Goauld (#48)
-	out (#40),a
-	in  a,(#41)
+	ld   a, #48						; Set I/O device to Goauld (#48)
+	out  (#40), a
+	in   a, (#41)
 	ei
 	; Set initial variables values
-	ld b,a
-	and #01							; Bit 0: mapper enable
-	ld (var_mapper),a
-	ld a,b
-	and #02							; Bit 1: megaram enable
-	srl a
-	ld (var_megram),a
-	ld a,b
-	and #04							; Bit 2: ghost scc enable
-	srl a
-	srl a
-	ld (var_ghtscc),a
-	ld a,b
-	and #08							; Bit 3: scanlines enable
-	srl a
-	srl a
-	srl a
-	ld (var_scanln),a
-	ld a,b
-	and #30							; Bits5,4: mapper slot
-	srl a
-	srl a
-	srl a
-	srl a
-	ld (var_mapslt),a
-	ld a,b
-	and #c0							; Bits7,6: megaram slot
-	srl a
-	srl a
-	srl a
-	srl a
-	srl a
-	srl a
-	ld (var_megslt),a
+	ld   b, a
+	and  #01						; Bit 0: mapper enable
+	ld   (var_mapper), a
+	ld   a, b
+	and  #02						; Bit 1: megaram enable
+	srl  a
+	ld   (var_megram), a
+	ld   a, b
+	and  #04						; Bit 2: ghost scc enable
+	srl  a
+	srl  a
+	ld   (var_ghtscc), a
+	ld   a, b
+	and  #08						; Bit 3: scanlines enable
+	srl  a
+	srl  a
+	srl  a
+	ld   (var_scanln), a
+	ld   a, b
+	and  #30						; Bits5,4: mapper slot
+	srl  a
+	srl  a
+	srl  a
+	srl  a
+	ld   (var_mapslt), a
+	ld   a, b
+	and  #c0						; Bits7,6: megaram slot
+	srl  a
+	srl  a
+	srl  a
+	srl  a
+	srl  a
+	srl  a
+	ld   (var_megslt), a
 
 ; ############## Main loop
 
@@ -150,7 +150,7 @@ wait_for_a_key:
 	jr   nz, .key_down
 	ld   e, (ix+STRUCT_KEY_UP)
 	ld   d, (ix+STRUCT_KEY_UP+1)
-	jr   .new_selection
+	jR   .new_selection
 
 .key_down:
 	dec  a
@@ -172,7 +172,7 @@ wait_for_a_key:
 ; ############## Actions
 
 selected_mapper:
-	ld hl, var_mapper
+	ld   hl, var_mapper
 	call .selected_on_off
 	or   a
 	ret  nz
@@ -180,7 +180,7 @@ selected_mapper:
 	ret
 
 selected_megaRam:
-	ld hl, var_megram
+	ld   hl, var_megram
 	call .selected_on_off
 	or   a
 	ret  nz
@@ -188,57 +188,57 @@ selected_megaRam:
 	ret
 
 selectedSlot1Ghost:
-	ld hl, var_ghtscc
-	jr .selected_on_off
+	ld   hl, var_ghtscc
+	jp   .selected_on_off
 
 selected_scanlines:
-	ld hl, var_scanln
+	ld   hl, var_scanln
 
 .selected_on_off:
-	ld a,(hl)
-	xor 1
-	ld (hl),a
+	ld   a, (hl)
+	xor  1
+	ld   (hl), a
 	ret
 
 selected_mapperSlot:
-	ld  a, (var_mapper)				; If disabled then not modify
-	or  a
-	ret z
-	ld  a, (var_megslt)				; Increase slot if not used by MegaRam
-	ld  b, a
-	ld  a, (var_mapslt)
+	ld   a, (var_mapper)				; If disabled then not modify
+	or   a
+	ret  z
+	ld   a, (var_megslt)				; Increase slot if not used by MegaRam
+	ld   b, a
+	ld   a, (var_mapslt)
 .mp_nomeg:
-	inc a
-	cp  b
-	jr  z, .mp_nomeg
-	cp  4
-	jr  nz, .mp_no4
-	xor a
+	inc  a
+	cp   b
+	jr   z, .mp_nomeg
+	cp   4
+	jr   nz, .mp_no4
+	xor  a
 .mp_no4:
-	ld  (var_mapslt), a
+	ld   (var_mapslt), a
 	ret
 
 selected_megaRamSlot:
-	ld  a, (var_megram)				; If disabled then not modify
-	or  a
-	ret z
-	ld  a, (var_mapslt)				; Increase slot if not used by Mapper
-	ld  b, a
-	ld  a, (var_megslt)
+	ld   a, (var_megram)				; If disabled then not modify
+	or   a
+	ret  z
+	ld   a, (var_mapslt)				; Increase slot if not used by Mapper
+	ld   b, a
+	ld   a, (var_megslt)
 .mr_nomap:
-	inc a
-	cp  b
-	jr  z, .mr_nomap
-	cp  4
-	jr  nz, .mr_no4
-	xor a
+	inc  a
+	cp   b
+	jr   z, .mr_nomap
+	cp   4
+	jr   nz, .mr_no4
+	xor  a
 .mr_no4:
-	ld  (var_megslt), a
+	ld   (var_megslt), a
 	ret
 
 selected_saveReset:
 	pop  hl							; Remove ret to bucle
-	call selected_saveExitFromReset
+	call config_var2byte
 	di
 	ld   a, #48						; Set I/O device to Goauld (#48)
 	out  (#40),a
@@ -249,63 +249,61 @@ selected_saveReset:
 
 selected_saveExit:
 	pop  hl							; Remove ret to bucle
-selected_saveExitFromReset:
-	call config_var2byte
+
+config_var2byte:
+	ld   a, (var_mapper)			; Bit 0: mapper enable
+	ld   b, a
+	ld   a, (var_megram)			; Bit 1: megaram enable
+	add  a, a
+	or   b
+	ld   b, a
+	ld   a, (var_ghtscc)			; Bit 2: ghost scc enable
+	add  a, a
+	add  a, a
+	or   b
+	ld   b, a
+	ld   a, (var_scanln)			; Bit 3: scanlines enable
+	add  a, a
+	add  a, a
+	add  a, a
+	or   b
+	ld   b, a
+	ld   a, (var_mapslt)			; Bits5,4: mapper slot
+	add  a, a
+	add  a, a
+	add  a, a
+	add  a, a
+	or   b
+	ld   b, a
+	ld   a, (var_megslt)			; Bits7,6: megaram slot
+	add  a, a
+	add  a, a
+	add  a, a
+	add  a, a
+	add  a, a
+	add  a, a
+	or   b
+	ld   b, a
+
 	di
-	ld  a, #48						; Set I/O device to Goauld (#48)
-	out (#40),a
-	ld  a, b						; Set Goauld settings
-	out (#41),a
+	ld   a, #48						; Set I/O device to Goauld (#48)
+	out  (#40),a
+	ld   a, b						; Set Goauld settings
+	out  (#41),a
 	ei
 	call INITXT						; BIOS clearScreen
 	ld   bc, #000d					; Blink mode off
 	jp   WRTVDP
 
-config_var2byte:
-	ld a,(var_mapper)				; Bit 0: mapper enable
-	ld b,a
-	ld a,(var_megram)				; Bit 1: megaram enable
-	add a,a
-	or b
-	ld b,a
-	ld a,(var_ghtscc)				; Bit 2: ghost scc enable
-	add a,a
-	add a,a
-	or b
-	ld b,a
-	ld a,(var_scanln)				; Bit 3: scanlines enable
-	add a,a
-	add a,a
-	add a,a
-	or b
-	ld b,a
-	ld a,(var_mapslt)				; Bits5,4: mapper slot
-	add a,a
-	add a,a
-	add a,a
-	add a,a
-	or b
-	ld b, a
-	ld a,(var_megslt)				; Bits7,6: megaram slot
-	add a,a
-	add a,a
-	add a,a
-	add a,a
-	add a,a
-	add a,a
-	or b
-	ld b, a
-	ret
-
 ; Prints characters from memory until a 0 is found.
 ; Input    : HL - The text address 
 print_string:
-	ld a,(hl)
-	or a
-	ret z
-	inc hl
+	ld   a,(hl)
+	or   a
+	ret  z
+	inc  hl
 	call CHPUT						; BIOS printChar
-	jr print_string
+	jr   print_string
 
 ; Set the cursor to L,H position and prints 'Off'/'On ' if A is 0 or not.
 ; Input    : H  - Y coordinate of cursor
