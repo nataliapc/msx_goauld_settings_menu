@@ -52,34 +52,31 @@
 	ld   (var_mapper), a
 	ld   a, b
 	and  #02						; Bit 1: megaram enable
-	srl  a
+	rrca
 	ld   (var_megram), a
 	ld   a, b
 	and  #04						; Bit 2: ghost scc enable
-	srl  a
-	srl  a
+	rrca
+	rrca
 	ld   (var_ghtscc), a
 	ld   a, b
 	and  #08						; Bit 3: scanlines enable
-	srl  a
-	srl  a
-	srl  a
+	rrca
+	rrca
+	rrca
 	ld   (var_scanln), a
 	ld   a, b
 	and  #30						; Bits5,4: mapper slot
-	srl  a
-	srl  a
-	srl  a
-	srl  a
+	rrca
+	rrca
+	rrca
+	rrca
 	ld   (var_mapslt), a
+out(#18),a
 	ld   a, b
 	and  #c0						; Bits7,6: megaram slot
-	srl  a
-	srl  a
-	srl  a
-	srl  a
-	srl  a
-	srl  a
+	rlca
+	rlca
 	ld   (var_megslt), a
 
 ; ############## Main loop
@@ -254,34 +251,34 @@ config_var2byte:
 	ld   a, (var_mapper)			; Bit 0: mapper enable
 	ld   b, a
 	ld   a, (var_megram)			; Bit 1: megaram enable
-	add  a, a
+	rlca
 	or   b
 	ld   b, a
 	ld   a, (var_ghtscc)			; Bit 2: ghost scc enable
-	add  a, a
-	add  a, a
+	rlca
+	rlca
 	or   b
 	ld   b, a
 	ld   a, (var_scanln)			; Bit 3: scanlines enable
-	add  a, a
-	add  a, a
-	add  a, a
+	rlca
+	rlca
+	rlca
 	or   b
 	ld   b, a
 	ld   a, (var_mapslt)			; Bits5,4: mapper slot
-	add  a, a
-	add  a, a
-	add  a, a
-	add  a, a
+	rlca
+	rlca
+	rlca
+	rlca
 	or   b
 	ld   b, a
 	ld   a, (var_megslt)			; Bits7,6: megaram slot
-	add  a, a
-	add  a, a
-	add  a, a
-	add  a, a
-	add  a, a
-	add  a, a
+	rlca
+	rlca
+	rlca
+	rlca
+	rlca
+	rlca
 	or   b
 	ld   b, a
 
