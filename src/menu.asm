@@ -1,9 +1,12 @@
+.ZILOG
+.BIOS
+
 .org #7d40
 
-	call BIOS_keyStatus
+	call CHSNS						; BIOS keyStatus
 	ret  z
-	call BIOS_readChar
-	cp   a, #67
+	call CHGET						; BIOS readChar
+	cp   a, 'g'
 	ret  nz
 
 	ld   hl, compressed_code
@@ -23,6 +26,3 @@ compressed_code:
 	.incbin "menu_main.zx0"
 
 menu_main equ #8000
-
-BIOS_keyStatus equ #009C
-BIOS_readChar equ #009f

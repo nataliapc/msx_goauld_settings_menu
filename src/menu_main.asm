@@ -204,36 +204,36 @@ selected_mapperSlot:
 	ld  a, (var_mapper)				; If disabled then not modify
 	or  a
 	ret z
-	ld  a,(var_megslt)				; Increase slot if not used by MegaRam
+	ld  a, (var_megslt)				; Increase slot if not used by MegaRam
 	ld  b, a
-	ld  a,(var_mapslt)
+	ld  a, (var_mapslt)
 .mp_nomeg:
 	inc a
 	cp  b
-	jr  z,.mp_nomeg
+	jr  z, .mp_nomeg
 	cp  4
-	jr  nz,.mp_no4
+	jr  nz, .mp_no4
 	xor a
 .mp_no4:
-	ld  (var_mapslt),a
+	ld  (var_mapslt), a
 	ret
 
 selected_megaRamSlot:
 	ld  a, (var_megram)				; If disabled then not modify
 	or  a
 	ret z
-	ld  a,(var_mapslt)				; Increase slot if not used by Mapper
+	ld  a, (var_mapslt)				; Increase slot if not used by Mapper
 	ld  b, a
-	ld  a,(var_megslt)
+	ld  a, (var_megslt)
 .mr_nomap:
 	inc a
 	cp  b
-	jr  z,.mr_nomap
+	jr  z, .mr_nomap
 	cp  4
-	jr  nz,.mr_no4
+	jr  nz, .mr_no4
 	xor a
 .mr_no4:
-	ld  (var_megslt),a
+	ld  (var_megslt), a
 	ret
 
 selected_saveReset:
