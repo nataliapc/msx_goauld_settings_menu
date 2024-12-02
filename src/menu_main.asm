@@ -41,12 +41,12 @@
 .printmenu_loop_end:
 
 	; Read Goauld settings
-	di
+	di								; Set initial variables values
+
 	ld   a, #48						; Set I/O device to Goauld (#48)
 	out  (#40), a
 	in   a, (#41)
-	ei
-	; Set initial variables values
+	
 	ld   b, a
 	and  #01						; Bit 0: mapper enable
 	ld   (var_mapper), a
@@ -72,12 +72,22 @@
 	rrca
 	rrca
 	ld   (var_mapslt), a
-out(#18),a
 	ld   a, b
 	and  #c0						; Bits7,6: megaram slot
 	rlca
 	rlca
 	ld   (var_megslt), a
+
+	in   a, (#42)
+	ld   b, a
+	and  #01						; Bit 0: SD card enable
+	ld   (var_sdcard), a
+	ld   a, b
+	and  #06						; Bits1,2: SD card slot
+	rrca
+	ld   (var_sdcslt), a
+
+	ei
 
 ; ############## Main loop
 
@@ -94,11 +104,15 @@ bucle:
 	ld   a,(var_megram)
 	call print_on_off
 
-	ld   hl,#2b09					; Print Ghost SCC
+	ld   hl,#2b09					; Print Enable SD Card
+	ld   a,(var_sdcard)
+	call print_on_off
+
+	ld   hl,#2b0b					; Print Ghost SCC
 	ld   a,(var_ghtscc)
 	call print_on_off
 
-	ld   hl,#2b0b					; Print Enable Scanlines
+	ld   hl,#2b0d					; Print Enable Scanlines
 	ld   a,(var_scanln)
 	call print_on_off
 
@@ -111,6 +125,12 @@ bucle:
 	ld   hl,#3c07					; Print MegaRam Slot
 	call POSIT						; BIOS setCursor
 	ld   a,(var_megslt)
+	add  a,#30
+	call CHPUT						; BIOS printChar
+
+	ld   hl,#3c09					; Print SD Card Slot
+	call POSIT						; BIOS setCursor
+	ld   a,(var_sdcslt)
 	add  a,#30
 	call CHPUT						; BIOS printChar
 
@@ -140,7 +160,7 @@ wait_for_a_key:
 	ld   ixl, e
 	ld   ixh, d
 	ld   (var_currentStruct), ix
-	jr   bucle_repaint_selection
+	jp   bucle_repaint_selection
 
 .key_up:
 	dec  a
@@ -184,7 +204,12 @@ selected_megaRam:
 	ld   (var_megslt), a
 	ret
 
-selectedSlot1Ghost:
+selected_sdCard:
+	ld   hl, var_sdcard
+	call .selected_on_off
+	ret
+
+selected_slot1Ghost:
 	ld   hl, var_ghtscc
 	jp   .selected_on_off
 
@@ -198,16 +223,20 @@ selected_scanlines:
 	ret
 
 selected_mapperSlot:
-	ld   a, (var_mapper)				; If disabled then not modify
+	ld   a, (var_mapper)				; If disabled then don't modify
 	or   a
 	ret  z
-	ld   a, (var_megslt)				; Increase slot if not used by MegaRam
+	ld   a, (var_megslt)				; Increase slot if not used by MegaRam nor SD Card
 	ld   b, a
+	ld   a, (var_sdcslt)
+	ld   c, a
 	ld   a, (var_mapslt)
-.mp_nomeg:
+.mp_used:
 	inc  a
 	cp   b
-	jr   z, .mp_nomeg
+	jr   z, .mp_used
+	cp   c
+	jr   z, .mp_used
 	cp   4
 	jr   nz, .mp_no4
 	xor  a
@@ -216,21 +245,49 @@ selected_mapperSlot:
 	ret
 
 selected_megaRamSlot:
-	ld   a, (var_megram)				; If disabled then not modify
+	ld   a, (var_megram)				; If disabled then don't modify
 	or   a
 	ret  z
-	ld   a, (var_mapslt)				; Increase slot if not used by Mapper
+	ld   a, (var_mapslt)				; Increase slot if not used by Mapper nor SD Card
 	ld   b, a
+	ld   a, (var_sdcslt)
+	ld   c, a
 	ld   a, (var_megslt)
-.mr_nomap:
+.mr_used:
 	inc  a
 	cp   b
-	jr   z, .mr_nomap
+	jr   z, .mr_used
+	cp   c
+	jr   z, .mr_used
 	cp   4
 	jr   nz, .mr_no4
 	xor  a
 .mr_no4:
 	ld   (var_megslt), a
+	ret
+
+selected_sdCardSlot:
+	ld   a, (var_sdcard)				; If disabled then don't modify
+	or   a
+	ret  z
+	ld   a, (var_mapslt)				; Increase slot if not used by Mapper nor MegaRam
+	ld   b, a
+	ld   a, (var_megslt)
+	ld   c, a
+	ld   a, (var_sdcslt)
+.sd_used:
+	inc  a
+.sd_used_no_inc:
+	cp   b
+	jr   z, .sd_used
+	cp   c
+	jr   z, .sd_used
+	cp   4
+	jr   nz, .sd_no4
+	ld   a, #1
+	jr   .sd_used_no_inc
+.sd_no4:
+	ld   (var_sdcslt), a
 	ret
 
 selected_saveReset:
@@ -239,7 +296,8 @@ selected_saveReset:
 	di
 	ld   a, #48						; Set I/O device to Goauld (#48)
 	out  (#40),a
-	ld   a, #80						; Bit 7: reset
+	in   a, (#42)
+	or   #80						; Bit 7: reset
 	out  (#42), a
 	ei
 	ret
@@ -248,31 +306,31 @@ selected_saveExit:
 	pop  hl							; Remove ret to bucle
 
 config_var2byte:
-	ld   a, (var_mapper)			; Bit 0: mapper enable
+	ld   a, (var_mapper)			; #41 Bit 0: mapper enable
 	ld   b, a
-	ld   a, (var_megram)			; Bit 1: megaram enable
+	ld   a, (var_megram)			; #41 Bit 1: megaram enable
 	rlca
 	or   b
 	ld   b, a
-	ld   a, (var_ghtscc)			; Bit 2: ghost scc enable
-	rlca
-	rlca
-	or   b
-	ld   b, a
-	ld   a, (var_scanln)			; Bit 3: scanlines enable
-	rlca
+	ld   a, (var_ghtscc)			; #41 Bit 2: ghost scc enable
 	rlca
 	rlca
 	or   b
 	ld   b, a
-	ld   a, (var_mapslt)			; Bits5,4: mapper slot
-	rlca
+	ld   a, (var_scanln)			; #41 Bit 3: scanlines enable
 	rlca
 	rlca
 	rlca
 	or   b
 	ld   b, a
-	ld   a, (var_megslt)			; Bits7,6: megaram slot
+	ld   a, (var_mapslt)			; #41 Bits5,4: mapper slot
+	rlca
+	rlca
+	rlca
+	rlca
+	or   b
+	ld   b, a
+	ld   a, (var_megslt)			; #41 Bits7,6: megaram slot
 	rlca
 	rlca
 	rlca
@@ -282,15 +340,30 @@ config_var2byte:
 	or   b
 	ld   b, a
 
-	di
-	ld   a, #48						; Set I/O device to Goauld (#48)
-	out  (#40),a
-	ld   a, b						; Set Goauld settings
-	out  (#41),a
-	ei
+	ld   c, #41
+	call set_settings
+
+	ld   a, (var_sdcard)			; #42 Bit 0: SD Card enable
+	ld   b, a
+	ld   a, (var_sdcslt)			; #42 Bit 1,2: SD Card slot
+	rlca
+	or   b
+	ld   b, a
+
+	ld   c, #42
+	call set_settings
+
 	call INITXT						; BIOS clearScreen
 	ld   bc, #000d					; Blink mode off
 	jp   WRTVDP
+
+set_settings:
+	di
+	ld   a, #48						; Set I/O device to Goauld (#48)
+	out  (#40),a
+	ld   a, b
+	out  (c),a
+	reti
 
 ; Prints characters from memory until a 0 is found.
 ; Input    : HL - The text address 
@@ -346,6 +419,8 @@ enableMapperStr:
 	.db "Enable Mapper",0
 enableMegaRamStr:
 	.db "Enable MegaRam",0
+enableSDStr:
+	.db "Enable SD",0
 slot1GhostStr:
 	.db "Slot 1 Ghost SCC",0
 enableScanlinesStr:
@@ -388,40 +463,48 @@ struct_EnableMapper:
 struct_EnableMegaRam:
 	.db 21, 7
 	.dw enableMegaRamStr
-	.dw struct_EnableMapper, struct_Slot1GhostSCC, struct_MegaRamSlot
+	.dw struct_EnableMapper, struct_EnableSD, struct_MegaRamSlot
 	.dw #0800 + 6*10 + 2
 	.db 4
 	.dw selected_megaRam
 
-struct_Slot1GhostSCC:
+struct_EnableSD:
 	.db 21, 9
-	.dw slot1GhostStr
-	.dw struct_EnableMegaRam, struct_EnableScanlines, struct_Slot1GhostSCC
+	.dw enableSDStr
+	.dw struct_EnableMegaRam, struct_Slot1GhostSCC, struct_SDSlot
 	.dw #0800 + 8*10 + 2
 	.db 4
-	.dw selectedSlot1Ghost
+	.dw selected_sdCard
+
+struct_Slot1GhostSCC:
+	.db 21, 11
+	.dw slot1GhostStr
+	.dw struct_EnableSD, struct_EnableScanlines, struct_Slot1GhostSCC
+	.dw #0800 + 10*10 + 2
+	.db 4
+	.dw selected_slot1Ghost
 
 struct_EnableScanlines:
-	.db 21, 11
+	.db 21, 13
 	.dw enableScanlinesStr
 	.dw struct_Slot1GhostSCC, struct_SaveExit, struct_EnableScanlines
-	.dw #0800 + 10*10 + 2
+	.dw #0800 + 12*10 + 2
 	.db 4
 	.dw selected_scanlines
 
 struct_SaveExit:
-	.db 21, 13
+	.db 21, 15
 	.dw saveExitStr
 	.dw struct_EnableScanlines, struct_SaveReset, struct_SaveExit
-	.dw #0800 + 12*10 + 2
+	.dw #0800 + 14*10 + 2
 	.db 4
 	.dw selected_saveExit
 
 struct_SaveReset:
-	.db 21, 15
+	.db 21, 17
 	.dw saveResetStr
 	.dw struct_SaveExit, struct_EnableMapper, struct_SaveReset
-	.dw #0800 + 14*10 + 2
+	.dw #0800 + 16*10 + 2
 	.db 4
 	.dw selected_saveReset
 
@@ -436,10 +519,18 @@ struct_MapperSlot:
 struct_MegaRamSlot:
 	.db 54, 7
 	.dw slotStr
-	.dw struct_MapperSlot, struct_Slot1GhostSCC, struct_EnableMegaRam
+	.dw struct_MapperSlot, struct_SDSlot, struct_EnableMegaRam
 	.dw #0800 + 6*10 + 6
 	.db 2
 	.dw selected_megaRamSlot
+
+struct_SDSlot:
+	.db 54, 9
+	.dw slotStr
+	.dw struct_MegaRamSlot, struct_Slot1GhostSCC, struct_EnableSD
+	.dw #0800 + 8*10 + 6
+	.db 2
+	.dw selected_sdCardSlot
 
 structs_end:
 	.db 0
@@ -449,10 +540,12 @@ structs_end:
 
 var_mapper: ds 1
 var_megram: ds 1
+var_sdcard: ds 1
 var_ghtscc: ds 1
 var_scanln: ds 1
 var_mapslt: ds 1
 var_megslt: ds 1
+var_sdcslt: ds 1
 
 var_currentStruct: ds 2
 

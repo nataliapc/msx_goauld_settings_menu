@@ -23,7 +23,7 @@ MENUBIN = $(DIROUT)/menu.z80
 MENUMAIN = $(DIROUT)/menu_main.z80
 ROMBIN = ./fm_logo_menu.bin
 ROMEMPTY = $(ASSETS)/16k_msx2p_fm_logo_menu.bin
-ADDRESS = 0x7d40
+ADDRESS = 0x4760
 ADDRESSBIN = $(shell echo "$$(( $(ADDRESS) - 0x4000 ))" | bc)
 
 rom: cleanrom $(ROMBIN)

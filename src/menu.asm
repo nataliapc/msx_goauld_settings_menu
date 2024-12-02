@@ -1,7 +1,7 @@
 .ZILOG
 .BIOS
 
-.org #7d40
+.org #4760
 
 	call CHSNS						; BIOS keyStatus
 	ret  z
