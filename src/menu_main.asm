@@ -414,7 +414,7 @@ print_selection:
 ; ############## Constants
 
 menuTitleStr:
-	.db "MSX Goa'uld Settings Menu v1.0",0
+	.db "MSX Goa'uld Settings Menu v1.1",0
 enableMapperStr:
 	.db "Enable Mapper",0
 enableMegaRamStr:
