@@ -2,6 +2,15 @@
 .BIOS
 .BIOSVARS
 
+;ENABLE_SDCARD=1
+
+IFDEF ENABLE_SDCARD
+ELSE
+	struct_EnableSD_UP = struct_EnableMegaRam
+	struct_EnableSD_DOWN = struct_Slot1GhostSCC
+	struct_SDSlot = struct_Slot1GhostSCC
+ENDIF
+
 .org #8000
 
 ; ############## Initialization
@@ -83,6 +92,7 @@
 	rlca
 	ld   (var_megslt), a
 
+IFDEF ENABLE_SDCARD
 	in   a, (#42)
 	ld   b, a
 	and  #01						; Bit 0: SD card enable
@@ -91,6 +101,7 @@
 	and  #06						; Bits1,2: SD card slot
 	rrca
 	ld   (var_sdcslt), a
+ENDIF
 
 	ei
 
@@ -101,25 +112,33 @@ bucle_repaint_selection:
 	call print_selection
 
 bucle:
-	ld   hl,#2b05					; Print Enable Mapper
+ONOFF_Y = 5
+	ld   hl,#2b00 + ONOFF_Y			; Print Enable Mapper
 	ld   a,(var_mapper)
 	call print_on_off
+ONOFF_Y = ONOFF_Y + 2
 
-	ld   hl,#2b07					; Print Enable Megaram
+	ld   hl,#2b00 + ONOFF_Y			; Print Enable Megaram
 	ld   a,(var_megram)
 	call print_on_off
+ONOFF_Y = ONOFF_Y + 2
 
-	ld   hl,#2b09					; Print Enable SD Card
+IFDEF ENABLE_SDCARD
+	ld   hl,#2b00 + ONOFF_Y			; Print Enable SD Card
 	ld   a,(var_sdcard)
 	call print_on_off
+ONOFF_Y = ONOFF_Y + 2
+ENDIF
 
-	ld   hl,#2b0b					; Print Ghost SCC
+	ld   hl,#2b00 + ONOFF_Y			; Print Ghost SCC
 	ld   a,(var_ghtscc)
 	call print_on_off
+ONOFF_Y = ONOFF_Y + 2
 
-	ld   hl,#2b0d					; Print Enable Scanlines
+	ld   hl,#2b00 + ONOFF_Y			; Print Enable Scanlines
 	ld   a,(var_scanln)
 	call print_on_off
+ONOFF_Y = ONOFF_Y + 2
 
 	ld   hl,#3c05					; Print Mapper Slot
 	call POSIT						; BIOS setCursor
@@ -133,11 +152,13 @@ bucle:
 	add  a,#30
 	call CHPUT						; BIOS printChar
 
+IFDEF ENABLE_SDCARD
 	ld   hl,#3c09					; Print SD Card Slot
 	call POSIT						; BIOS setCursor
 	ld   a,(var_sdcslt)
 	add  a,#30
 	call CHPUT						; BIOS printChar
+ENDIF
 
 	; Wait for a key
 wait_for_a_key:
@@ -209,10 +230,12 @@ selected_megaRam:
 	ld   (var_megslt), a
 	ret
 
+IFDEF ENABLE_SDCARD
 selected_sdCard:
 	ld   hl, var_sdcard
 	call .selected_on_off
 	ret
+ENDIF
 
 selected_slot1Ghost:
 	ld   hl, var_ghtscc
@@ -233,15 +256,19 @@ selected_mapperSlot:
 	ret  z
 	ld   a, (var_megslt)				; Increase slot if not used by MegaRam nor SD Card
 	ld   b, a
+IFDEF ENABLE_SDCARD
 	ld   a, (var_sdcslt)
 	ld   c, a
+ENDIF
 	ld   a, (var_mapslt)
 .mp_used:
 	inc  a
 	cp   b
 	jr   z, .mp_used
+IFDEF ENABLE_SDCARD
 	cp   c
 	jr   z, .mp_used
+ENDIF
 	cp   4
 	jr   nz, .mp_no4
 	xor  a
@@ -255,15 +282,19 @@ selected_megaRamSlot:
 	ret  z
 	ld   a, (var_mapslt)				; Increase slot if not used by Mapper nor SD Card
 	ld   b, a
+IFDEF ENABLE_SDCARD
 	ld   a, (var_sdcslt)
 	ld   c, a
+ENDIF
 	ld   a, (var_megslt)
 .mr_used:
 	inc  a
 	cp   b
 	jr   z, .mr_used
+IFDEF ENABLE_SDCARD
 	cp   c
 	jr   z, .mr_used
+ENDIF
 	cp   4
 	jr   nz, .mr_no4
 	xor  a
@@ -271,6 +302,7 @@ selected_megaRamSlot:
 	ld   (var_megslt), a
 	ret
 
+IFDEF ENABLE_SDCARD
 selected_sdCardSlot:
 	ld   a, (var_sdcard)				; If disabled then don't modify
 	or   a
@@ -294,6 +326,7 @@ selected_sdCardSlot:
 .sd_no4:
 	ld   (var_sdcslt), a
 	ret
+ENDIF
 
 selected_saveReset:
 	pop  hl							; Remove ret to bucle
@@ -348,12 +381,15 @@ config_var2byte:
 	ld   c, #41
 	call set_settings
 
+	ld   b, #0
+IFDEF ENABLE_SDCARD
 	ld   a, (var_sdcard)			; #42 Bit 0: SD Card enable
 	ld   b, a
 	ld   a, (var_sdcslt)			; #42 Bit 1,2: SD Card slot
 	rlca
 	or   b
 	ld   b, a
+ENDIF
 
 	ld   c, #42
 	call set_settings
@@ -456,86 +492,106 @@ STRUCT_SEL_ACTION	equ		STRUCT_SEL_LEN + 1
 
 STRUCT_SIZE			equ		STRUCT_SEL_ACTION + 2	; Struct size
 
+POS_Y = 4
+
 structs_start:
 struct_EnableMapper:
-	.db 21, 5
+	.db 21, POS_Y+1
 	.dw enableMapperStr
 	.dw struct_SaveReset, struct_EnableMegaRam, struct_MapperSlot
-	.dw #0800 + 4*10 + 2
+	.dw #0800 + POS_Y*10 + 2
 	.db 4
 	.dw selected_mapper
+POS_Y = POS_Y + 2
 
 struct_EnableMegaRam:
-	.db 21, 7
+	.db 21, POS_Y+1
 	.dw enableMegaRamStr
-	.dw struct_EnableMapper, struct_EnableSD, struct_MegaRamSlot
-	.dw #0800 + 6*10 + 2
+	.dw struct_EnableMapper, struct_EnableSD_DOWN, struct_MegaRamSlot
+	.dw #0800 + POS_Y*10 + 2
 	.db 4
 	.dw selected_megaRam
+POS_Y = POS_Y + 2
 
+IFDEF ENABLE_SDCARD
 struct_EnableSD:
-	.db 21, 9
+struct_EnableSD_UP:
+struct_EnableSD_DOWN:
+	.db 21, POS_Y+1
 	.dw enableSDStr
 	.dw struct_EnableMegaRam, struct_Slot1GhostSCC, struct_SDSlot
-	.dw #0800 + 8*10 + 2
+	.dw #0800 + POS_Y*10 + 2
 	.db 4
 	.dw selected_sdCard
+POS_Y = POS_Y + 2
+ENDIF
 
 struct_Slot1GhostSCC:
-	.db 21, 11
+	.db 21, POS_Y+1
 	.dw slot1GhostStr
-	.dw struct_EnableSD, struct_EnableScanlines, struct_Slot1GhostSCC
-	.dw #0800 + 10*10 + 2
+	.dw struct_EnableSD_UP, struct_EnableScanlines, struct_Slot1GhostSCC
+	.dw #0800 + POS_Y*10 + 2
 	.db 4
 	.dw selected_slot1Ghost
+POS_Y = POS_Y + 2
 
 struct_EnableScanlines:
-	.db 21, 13
+	.db 21, POS_Y+1
 	.dw enableScanlinesStr
 	.dw struct_Slot1GhostSCC, struct_SaveExit, struct_EnableScanlines
-	.dw #0800 + 12*10 + 2
+	.dw #0800 + POS_Y*10 + 2
 	.db 4
 	.dw selected_scanlines
+POS_Y = POS_Y + 2
 
 struct_SaveExit:
-	.db 21, 15
+	.db 21, POS_Y+1
 	.dw saveExitStr
 	.dw struct_EnableScanlines, struct_SaveReset, struct_SaveExit
-	.dw #0800 + 14*10 + 2
+	.dw #0800 + POS_Y*10 + 2
 	.db 4
 	.dw selected_saveExit
+POS_Y = POS_Y + 2
 
 struct_SaveReset:
-	.db 21, 17
+	.db 21, POS_Y+1
 	.dw saveResetStr
 	.dw struct_SaveExit, struct_EnableMapper, struct_SaveReset
-	.dw #0800 + 16*10 + 2
+	.dw #0800 + POS_Y*10 + 2
 	.db 4
 	.dw selected_saveReset
+POS_Y = POS_Y + 2
+
+POS_Y = 4
 
 struct_MapperSlot:
-	.db 54, 5
+	.db 54, POS_Y+1
 	.dw slotStr
 	.dw struct_SaveReset, struct_MegaRamSlot, struct_EnableMapper
-	.dw #0800 + 4*10 + 6
+	.dw #0800 + POS_Y*10 + 6
 	.db 2
 	.dw selected_mapperSlot
+POS_Y = POS_Y + 2
 
 struct_MegaRamSlot:
-	.db 54, 7
+	.db 54, POS_Y+1
 	.dw slotStr
 	.dw struct_MapperSlot, struct_SDSlot, struct_EnableMegaRam
-	.dw #0800 + 6*10 + 6
+	.dw #0800 + POS_Y*10 + 6
 	.db 2
 	.dw selected_megaRamSlot
+POS_Y = POS_Y + 2
 
+IFDEF ENABLE_SDCARD
 struct_SDSlot:
-	.db 54, 9
+	.db 54, POS_Y+1
 	.dw slotStr
 	.dw struct_MegaRamSlot, struct_Slot1GhostSCC, struct_EnableSD
-	.dw #0800 + 8*10 + 6
+	.dw #0800 + POS_Y*10 + 6
 	.db 2
 	.dw selected_sdCardSlot
+POS_Y = POS_Y + 2
+ENDIF
 
 structs_end:
 	.db 0
@@ -543,16 +599,20 @@ structs_end:
 
 ; ############## Variables
 
-var_mapper: ds 1
-var_megram: ds 1
-var_sdcard: ds 1
-var_ghtscc: ds 1
-var_scanln: ds 1
-var_mapslt: ds 1
-var_megslt: ds 1
-var_sdcslt: ds 1
+	var_mapper: ds 1
+	var_megram: ds 1
+IFDEF ENABLE_SDCARD
+	var_sdcard: ds 1
+ENDIF
+	var_ghtscc: ds 1
+	var_scanln: ds 1
+	var_mapslt: ds 1
+	var_megslt: ds 1
+IFDEF ENABLE_SDCARD
+	var_sdcslt: ds 1
+ENDIF
 
-var_currentStruct: ds 2
+	var_currentStruct: ds 2
 
 
 ; ############## MSX VT-52 Character Codes
