@@ -3,13 +3,40 @@
 .BIOSVARS
 
 ;ENABLE_SDCARD=1
+;ENABLE_MEGARAM=1
+
+IFDEF ENABLE_MEGARAM
+	struct_EnableMegaRam_UP = struct_EnableMegaRam
+	struct_EnableMegaRam_DOWN = struct_EnableMegaRam
+	struct_MegaRamSlot_UP = struct_MegaRamSlot
+	struct_MegaRamSlot_DOWN = struct_MegaRamSlot
+ELSE
+	struct_EnableMegaRam_UP = struct_EnableMapper
+  IFDEF ENABLE_SDCARD
+	struct_EnableMegaRam_DOWN = struct_EnableSD
+	struct_MegaRamSlot_UP = struct_MapperSlot
+	struct_MegaRamSlot_DOWN = struct_SDSlot
+  ELSE
+	struct_EnableMegaRam_DOWN = struct_Slot1GhostSCC
+	struct_MegaRamSlot_UP = struct_MapperSlot
+	struct_MegaRamSlot_DOWN = struct_Slot1GhostSCC
+  ENDIF ;ENABLE_SDCARD
+	struct_MegaRamSlot = struct_MapperSlot
+ENDIF ;ENABLE_MEGARAM
 
 IFDEF ENABLE_SDCARD
+	struct_EnableSD_UP = struct_EnableSD
+	struct_EnableSD_DOWN = struct_EnableSD
+	struct_SDSlot_DOWN = struct_SDSlot
 ELSE
+  IFDEF ENABLE_MEGARAM
 	struct_EnableSD_UP = struct_EnableMegaRam
+  ELSE
+	struct_EnableSD_UP = struct_EnableMapper
+  ENDIF ;ENABLE_MEGARAM
 	struct_EnableSD_DOWN = struct_Slot1GhostSCC
 	struct_SDSlot = struct_Slot1GhostSCC
-ENDIF
+ENDIF ;ENABLE_SDCARD
 
 .org #8000
 
@@ -65,10 +92,12 @@ ENDIF
 	and  #01						; Bit 0: mapper enable
 	ld   (var_mapper), a
 	ld   a, b
+IFDEF ENABLE_MEGARAM
 	and  #02						; Bit 1: megaram enable
 	rrca
 	ld   (var_megram), a
 	ld   a, b
+ENDIF ;ENABLE_MEGARAM
 	and  #04						; Bit 2: ghost scc enable
 	rrca
 	rrca
@@ -87,10 +116,12 @@ ENDIF
 	rrca
 	ld   (var_mapslt), a
 	ld   a, b
+IFDEF ENABLE_MEGARAM
 	and  #c0						; Bits7,6: megaram slot
 	rlca
 	rlca
 	ld   (var_megslt), a
+ENDIF ;ENABLE_MEGARAM
 
 IFDEF ENABLE_SDCARD
 	in   a, (#42)
@@ -101,7 +132,7 @@ IFDEF ENABLE_SDCARD
 	and  #06						; Bits1,2: SD card slot
 	rrca
 	ld   (var_sdcslt), a
-ENDIF
+ENDIF ;ENABLE_SDCARD
 
 	ei
 
@@ -111,24 +142,26 @@ bucle_repaint_selection:
 	ld   a, #ff						; Print selection
 	call print_selection
 
-bucle:
 ONOFF_Y = 5
+bucle:
 	ld   hl,#2b00 + ONOFF_Y			; Print Enable Mapper
 	ld   a,(var_mapper)
 	call print_on_off
 ONOFF_Y = ONOFF_Y + 2
 
+IFDEF ENABLE_MEGARAM
 	ld   hl,#2b00 + ONOFF_Y			; Print Enable Megaram
 	ld   a,(var_megram)
 	call print_on_off
 ONOFF_Y = ONOFF_Y + 2
+ENDIF ;ENABLE_MEGARAM
 
 IFDEF ENABLE_SDCARD
 	ld   hl,#2b00 + ONOFF_Y			; Print Enable SD Card
 	ld   a,(var_sdcard)
 	call print_on_off
 ONOFF_Y = ONOFF_Y + 2
-ENDIF
+ENDIF ;ENABLE_SDCARD
 
 	ld   hl,#2b00 + ONOFF_Y			; Print Ghost SCC
 	ld   a,(var_ghtscc)
@@ -140,25 +173,31 @@ ONOFF_Y = ONOFF_Y + 2
 	call print_on_off
 ONOFF_Y = ONOFF_Y + 2
 
-	ld   hl,#3c05					; Print Mapper Slot
+ONOFF_Y = 5
+	ld   hl,#3c00 + ONOFF_Y			; Print Mapper Slot
 	call POSIT						; BIOS setCursor
 	ld   a,(var_mapslt)
 	add  a,#30
 	call CHPUT						; BIOS printChar
+ONOFF_Y = ONOFF_Y + 2
 
-	ld   hl,#3c07					; Print MegaRam Slot
+IFDEF ENABLE_MEGARAM
+	ld   hl,#3c00 + ONOFF_Y			; Print MegaRam Slot
 	call POSIT						; BIOS setCursor
 	ld   a,(var_megslt)
 	add  a,#30
 	call CHPUT						; BIOS printChar
+ONOFF_Y = ONOFF_Y + 2
+ENDIF ;ENABLE_MEGARAM
 
 IFDEF ENABLE_SDCARD
-	ld   hl,#3c09					; Print SD Card Slot
+	ld   hl,#3c00 + ONOFF_Y			; Print SD Card Slot
 	call POSIT						; BIOS setCursor
 	ld   a,(var_sdcslt)
 	add  a,#30
 	call CHPUT						; BIOS printChar
-ENDIF
+ONOFF_Y = ONOFF_Y + 2
+ENDIF ;ENABLE_SDCARD
 
 	; Wait for a key
 wait_for_a_key:
@@ -222,6 +261,7 @@ selected_mapper:
 	ld   (var_mapslt), a
 	ret
 
+IFDEF ENABLE_MEGARAM
 selected_megaRam:
 	ld   hl, var_megram
 	call .selected_on_off
@@ -229,13 +269,14 @@ selected_megaRam:
 	ret  nz
 	ld   (var_megslt), a
 	ret
+ENDIF ;ENABLE_MEGARAM
 
 IFDEF ENABLE_SDCARD
 selected_sdCard:
 	ld   hl, var_sdcard
 	call .selected_on_off
 	ret
-ENDIF
+ENDIF ;ENABLE_SDCARD
 
 selected_slot1Ghost:
 	ld   hl, var_ghtscc
@@ -254,21 +295,25 @@ selected_mapperSlot:
 	ld   a, (var_mapper)				; If disabled then don't modify
 	or   a
 	ret  z
+IFDEF ENABLE_MEGARAM
 	ld   a, (var_megslt)				; Increase slot if not used by MegaRam nor SD Card
 	ld   b, a
+ENDIF ;ENABLE_MEGARAM
 IFDEF ENABLE_SDCARD
 	ld   a, (var_sdcslt)
 	ld   c, a
-ENDIF
+ENDIF ;ENABLE_SDCARD
 	ld   a, (var_mapslt)
 .mp_used:
 	inc  a
+IFDEF ENABLE_MEGARAM
 	cp   b
 	jr   z, .mp_used
+ENDIF ;ENABLE_MEGARAM
 IFDEF ENABLE_SDCARD
 	cp   c
 	jr   z, .mp_used
-ENDIF
+ENDIF ;ENABLE_SDCARD
 	cp   4
 	jr   nz, .mp_no4
 	xor  a
@@ -276,6 +321,7 @@ ENDIF
 	ld   (var_mapslt), a
 	ret
 
+IFDEF ENABLE_MEGARAM
 selected_megaRamSlot:
 	ld   a, (var_megram)				; If disabled then don't modify
 	or   a
@@ -285,7 +331,7 @@ selected_megaRamSlot:
 IFDEF ENABLE_SDCARD
 	ld   a, (var_sdcslt)
 	ld   c, a
-ENDIF
+ENDIF ;ENABLE_SDCARD
 	ld   a, (var_megslt)
 .mr_used:
 	inc  a
@@ -301,6 +347,7 @@ ENDIF
 .mr_no4:
 	ld   (var_megslt), a
 	ret
+ENDIF ;ENABLE_MEGARAM
 
 IFDEF ENABLE_SDCARD
 selected_sdCardSlot:
@@ -309,16 +356,20 @@ selected_sdCardSlot:
 	ret  z
 	ld   a, (var_mapslt)				; Increase slot if not used by Mapper nor MegaRam
 	ld   b, a
+IFDEF ENABLE_MEGARAM
 	ld   a, (var_megslt)
 	ld   c, a
+ENDIF ;ENABLE_MEGARAM
 	ld   a, (var_sdcslt)
 .sd_used:
 	inc  a
 .sd_used_no_inc:
 	cp   b
 	jr   z, .sd_used
+IFDEF ENABLE_MEGARAM
 	cp   c
 	jr   z, .sd_used
+ENDIF ;ENABLE_MEGARAM
 	cp   4
 	jr   nz, .sd_no4
 	ld   a, #1
@@ -326,7 +377,7 @@ selected_sdCardSlot:
 .sd_no4:
 	ld   (var_sdcslt), a
 	ret
-ENDIF
+ENDIF ;ENABLE_SDCARD
 
 selected_saveReset:
 	pop  hl							; Remove ret to bucle
@@ -346,10 +397,12 @@ selected_saveExit:
 config_var2byte:
 	ld   a, (var_mapper)			; #41 Bit 0: mapper enable
 	ld   b, a
+IFDEF ENABLE_MEGARAM
 	ld   a, (var_megram)			; #41 Bit 1: megaram enable
 	rlca
 	or   b
 	ld   b, a
+ENDIF ;ENABLE_MEGARAM
 	ld   a, (var_ghtscc)			; #41 Bit 2: ghost scc enable
 	rlca
 	rlca
@@ -368,6 +421,7 @@ config_var2byte:
 	rlca
 	or   b
 	ld   b, a
+IFDEF ENABLE_MEGARAM
 	ld   a, (var_megslt)			; #41 Bits7,6: megaram slot
 	rlca
 	rlca
@@ -377,6 +431,7 @@ config_var2byte:
 	rlca
 	or   b
 	ld   b, a
+ENDIF ;ENABLE_MEGARAM
 
 	ld   c, #41
 	call set_settings
@@ -458,10 +513,14 @@ menuTitleStr:
 	.db "MSX Goa'uld Settings Menu v1.1",0
 enableMapperStr:
 	.db "Enable Mapper",0
+IFDEF ENABLE_MEGARAM
 enableMegaRamStr:
 	.db "Enable MegaRam",0
+ENDIF ;ENABLE_MEGARAM
+IFDEF ENABLE_SDCARD
 enableSDStr:
 	.db "Enable SD",0
+ENDIF ;ENABLE_SDCARD
 slot1GhostStr:
 	.db "Slot 1 Ghost SCC",0
 enableScanlinesStr:
@@ -498,12 +557,13 @@ structs_start:
 struct_EnableMapper:
 	.db 21, POS_Y+1
 	.dw enableMapperStr
-	.dw struct_SaveReset, struct_EnableMegaRam, struct_MapperSlot
+	.dw struct_SaveReset, struct_EnableMegaRam_DOWN, struct_MapperSlot
 	.dw #0800 + POS_Y*10 + 2
 	.db 4
 	.dw selected_mapper
 POS_Y = POS_Y + 2
 
+IFDEF ENABLE_MEGARAM
 struct_EnableMegaRam:
 	.db 21, POS_Y+1
 	.dw enableMegaRamStr
@@ -512,19 +572,18 @@ struct_EnableMegaRam:
 	.db 4
 	.dw selected_megaRam
 POS_Y = POS_Y + 2
+ENDIF ;ENABLE_MEGARAM
 
 IFDEF ENABLE_SDCARD
 struct_EnableSD:
-struct_EnableSD_UP:
-struct_EnableSD_DOWN:
 	.db 21, POS_Y+1
 	.dw enableSDStr
-	.dw struct_EnableMegaRam, struct_Slot1GhostSCC, struct_SDSlot
+	.dw struct_EnableMegaRam_UP, struct_Slot1GhostSCC, struct_SDSlot
 	.dw #0800 + POS_Y*10 + 2
 	.db 4
 	.dw selected_sdCard
 POS_Y = POS_Y + 2
-ENDIF
+ENDIF ;ENABLE_SDCARD
 
 struct_Slot1GhostSCC:
 	.db 21, POS_Y+1
@@ -567,26 +626,28 @@ POS_Y = 4
 struct_MapperSlot:
 	.db 54, POS_Y+1
 	.dw slotStr
-	.dw struct_SaveReset, struct_MegaRamSlot, struct_EnableMapper
+	.dw struct_SaveReset, struct_MegaRamSlot_DOWN, struct_EnableMapper
 	.dw #0800 + POS_Y*10 + 6
 	.db 2
 	.dw selected_mapperSlot
 POS_Y = POS_Y + 2
 
+IFDEF ENABLE_MEGARAM
 struct_MegaRamSlot:
 	.db 54, POS_Y+1
 	.dw slotStr
-	.dw struct_MapperSlot, struct_SDSlot, struct_EnableMegaRam
+	.dw struct_MapperSlot, struct_SDSlot_DOWN, struct_EnableMegaRam
 	.dw #0800 + POS_Y*10 + 6
 	.db 2
 	.dw selected_megaRamSlot
 POS_Y = POS_Y + 2
+ENDIF ;ENABLE_MEGARAM
 
 IFDEF ENABLE_SDCARD
 struct_SDSlot:
 	.db 54, POS_Y+1
 	.dw slotStr
-	.dw struct_MegaRamSlot, struct_Slot1GhostSCC, struct_EnableSD
+	.dw struct_MegaRamSlot_UP, struct_Slot1GhostSCC, struct_EnableSD
 	.dw #0800 + POS_Y*10 + 6
 	.db 2
 	.dw selected_sdCardSlot
@@ -600,14 +661,18 @@ structs_end:
 ; ############## Variables
 
 	var_mapper: ds 1
+IFDEF ENABLE_MEGARAM
 	var_megram: ds 1
+ENDIF
 IFDEF ENABLE_SDCARD
 	var_sdcard: ds 1
 ENDIF
 	var_ghtscc: ds 1
 	var_scanln: ds 1
 	var_mapslt: ds 1
+IFDEF ENABLE_MEGARAM
 	var_megslt: ds 1
+ENDIF
 IFDEF ENABLE_SDCARD
 	var_sdcslt: ds 1
 ENDIF
