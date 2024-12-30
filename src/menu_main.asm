@@ -26,6 +26,11 @@
 	ld   bc, 30
 	ld   hl, #0800
 	call FILVRM						; BIOS fill VRAM
+	; FW version
+	ld   hl, #1518
+	call POSIT						; BIOS setCursor
+	ld   hl, #7D40
+	call print_string
 
 	; Print menu options
 	ld   ix, structs_start
